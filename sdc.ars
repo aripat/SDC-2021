@@ -1,0 +1,291 @@
+DEFINE ipset serverip = { *.*.*.*:*, 10.211.55.1:8888 };
+
+DEFINE AR AR1
+	CONDITION
+		EXISTS http.query["email"]
+	ACTION
+		ANSWER "Esiste in query\n"
+	;
+
+
+//DEFINE AR AR2
+//	CONDITION
+//		EXISTS http.data["email"]
+//	ACTION
+//		ANSWER "Esiste in data\n"
+//	;
+
+DEFINE AR AR3
+	CONDITION
+		!EXISTS http.query["email"]
+	ACTION
+		ANSWER "NON Esiste in data\n"
+	;
+
+DEFINE AR AREND
+	CONDITION
+		net.ipdst is in serverip
+	ACTION
+		ANSWER "AREND\n"
+	;
+
+
+DEFINE set utenti_bloccati = { "franco" };
+
+define set blocca = { "franco" };
+
+define urlset url_comando = { /comando, /comando/, /comando/* }; // */
+define set url_random = { };
+define dictionary url_keys = { };
+define set dummy = {};
+
+DEFINE VR random
+	CONDITION
+		net.ipdst is in serverip
+		http.url is in url_comando
+		!http.url is in url_random "/comando/" ""
+	VAR
+		url = http.url
+	ACTION
+		REPORT protette {http.url}
+	NEXT
+		net.ipdst is in serverip
+		http.url is url
+		!http.url is in url_random "/comando/" ""
+	ACTION
+		//è un modo per chiamare una funzione!
+		ADD CAT{"? (lambda (pbuf) (Show 1)(va::vaeng::AddToDict \"url_keys\" (mtfa-eis-get-current-uri pbuf) (mtfa-rand-alfanum 10 mtfa-char-set-alfa) \"60\" #f) \"dummy\")"} TO SET DUMMY
+		ADD http.url TO SET url_random 60 "/comando/" ""
+	;
+
+//CAT{"? ((lambda () (mtfa-rand-alfanum 10 mtfa-char-set-alfa)))"} TO SET blocca 
+//;
+
+DEFINE AR RANDOM_KEY
+	CONDITION
+		net.ipdst is in serverip
+		http.url is in url_random "/comando/" ""
+	ACTION
+		ANSWER "? (lambda (pbuf) (mtfa-eis-get-current-uri pbuf))"
+		//ANSWER "? ((lambda (pbuf) (let ((k (mtfa-rand-alfanum 10 mtfa-char-set-alfa))(v (mtfa-rand-alfanum 10 mtfa-char-set-alfa))) (va::vaeng::AddToDict \"url_keys\" k v 30 #f) k)) pbuf)"
+	;
+(*
+scm_call_1(ScmRunString, scm_from_latin1_string("(set! va::vaeng::AddToSet   va-c::vaeng::AddToSet)"));
+scm_call_1(ScmRunString, scm_from_latin1_string("(set! va::vaeng::AddToDict  va-c::vaeng::AddToDict)"));
+scm_call_1(ScmRunString, scm_from_latin1_string("(set! va::vaeng::DelFromSet va-c::vaeng::DelFromSet)"));
+scm_call_1(ScmRunString, scm_from_latin1_string("(set! va::vaeng::GetFromSet va-c::vaeng::GetFromSet)"));
+*)
+
+
+(*
+regola: A e B devono comunicare in modo sicuro
+A va su una pagina non esistente
+B va sulla stessa pagina
+Problema: vr possono alterare set ma dato che non abbiamo dizionari o similari non possono 
+comunicare inserire coppie k-v
+A va sulla stessa pagina e ottiene un valore
+B va sulla stessa pagina e ottiene lo stesso valore
+*)
+
+		
+///***************************TEST PATTERNS START
+//Per vedere i set
+//GET http://127.0.0.1:61108/a?CMD=set-list  | sed s/],/],\\n/g
+//GET http://127.0.0.1:61108/a?CMD=set-get\&name=elenco_ipsrc_convalida_uri
+//GET http://127.0.0.1:61108/a?CMD=set-get\&name=elenco_uri_ammesse| tr "," "\n"| grep 47| egrep -v "administr|maps"
+
+//Problema: dato un sito web esposto su internet le cui pagine sono inizialmente tutte private, 
+//definire il ruolo di un utente (amministratore) che con l'atto di navigare su una pagina 
+//la rende automaticamente pubblica, per tutti
+
+//Problema: dato un sito web esposto su internet le cui pagine sono inizialmente tutte private, 
+//definire il ruolo di un utente (amministratore) che con l'atto di navigare due volte su una pagina 
+//la rende automaticamente pubblica, per tutti
+
+(* /*
+	Definire il modo di riconoscere l'amministratore (es: ip sorgente, oppure id
+	dell'agente che sta sulla macchina, oppure un insieme di username dopo che hanno 
+	effettuato un login corretto, ...)
+	Definire il modo in cui le pagine sono riconosciute come pubbliche o private
+	- ogni pagina (nuova) che viene richiesta, se è un "amministratore", la metto tra quelle pubbliche
+
+	Come gestisco il fatto che diventa pubblica al secondo passaggio? e non al primo?
+	esempio: due insiemi, insieme1 e insieme2 
+	DEFINE VR
+	CONDITION
+		url not in insieme1
+		url not in insieme2
+		utente è amministratore
+	ACTION
+		add url to insieme1
+	;
+
+	DEFINE VR
+	CONDITION
+		url in insieme1
+		url not in insieme2
+		utente è amministratore
+	ACTION
+		add url to insieme2
+		del url from insieme1 //non ha gran significato
+	;
+
+	DEFINE AR
+	CONDITION
+		url is in insieme2
+	ACTION
+		tcp.redirect alSito
+	;
+
+	CON LA OR:
+
+	DEFINE VR
+	CONDITION (
+		url not in insieme1
+		url not in insieme2
+		utente è amministratore
+	ACTION
+		add url to insieme1
+	) OR (
+		url in insieme1
+		url not in insieme2
+		utente è amministratore
+	ACTION
+		add url to insieme2
+		del url from insieme1 //non ha gran significato
+	);
+
+	Oppure!!
+	DEFINE VR ...
+	CONDITION
+		not url is is urlok
+		user is amministratore
+	VAR
+		laurl=http.url
+	ACTION
+		report ...
+	NEXT
+		url is laurl
+		user is amministratore
+	ACTION
+		add url to urlok
+	;
+*/ *)
+
+//DEFINE set elenco_uri_ammesse = 
+//	MySql{192.168.163.13:3306, "db", "username", "password", "select uri from sitoinuit"};
+
+//in una action di VR:
+//mysql.append(192.168.163.13:3306, "db", "username", "password",
+//"insert into sitoinuit (id, uri, url, host, query) values (sha2($0, 512), $0, $1, $2, $3)", 
+//{http.uri, http.url, http.host, http.query} )
+//  $0         $1       $2         $3
+
+
+(*
+define set check-patterns = { "Lalralta" };
+DEFINE AR "AR check patterns"
+	CONDITION
+		http.method is HTTP.GET
+		http.url is "/check"
+		http.cookie["uno"] is in check-patterns "1234" "4321" //> 4321567890
+	ACTION
+		ANSWER "Cookie ok"
+		ADD "ciccia" to set check-patterns "c.c" "ppp"
+	;
+
+DEFINE AR "AR check patterns accept"
+	CONDITION
+		http.url is "/check"
+	ACTION
+		ANSWER "NO cookie"
+	;
+
+DEFINE VR "VR check patterns"
+	CONDITION
+		http.method is HTTP.GET
+		http.url is "/check"
+		exists http.cookie["uno"]
+	ACTION
+		add http.cookie["uno"] to set check-patterns "1234" "4321"  // 's/1234/4321/'
+	;
+///***************************TEST PATTERNS END
+
+
+DEFINE AR "goto json"
+	CONDITION
+		http.method is HTTP.POST
+		http.url is "/ReqJson"
+	ACTION
+		MANAGE "JSONAPI"
+	;
+
+DEFINE AR "goto lisp1"
+	CONDITION
+		http.url is "/API1"
+		http.query["aaa"] is "100"
+		http.data["a"] is "12345"
+		http.cookie["pluto"] is "nome"
+		CAT { "franco" } is in blocca
+		CALL "LispFun1" WITH http.host, http.cookie["uno"]
+	ACTION
+		MANAGE "API1"
+	;
+
+DEFINE AR "goto lisp"
+	CONDITION
+		http.method is HTTP.POST
+		http.url is "/API"
+	ACTION
+		MANAGE "API"
+	;
+
+DEFINE AR "wordpress aperto"
+	CONDITION
+		net.ipdst is in serverip
+	ACTION
+		tcp.redirect "127.0.0.1:8888"
+	;
+
+DEFINE VR "verifica login"
+	CONDITION
+	(
+		obs.event is net.send
+		CAT { "franco" } is in blocca
+	ACTION
+		REPORT login {CAT{ "\n", 
+			" 1) URI: ", http.uri, "\n",				//uri
+			" 2) All data: ", http.data["0_FULL_DATA"], "\n",	//data
+			" 3) Var a: ", http.data["a"], "\n",			//data[...]
+			" 4) JSON: ", http.data["latitude"], "\n",		//data json
+			" 5) Query: ", http.query["0_FULL_QUERY"], "\n",	//query
+			" 6) Query beto: ", http.query["beto"], "\n",		//query json
+			" 7) Query bbb: ", http.query["bbb"], "\n",		//query std
+			" 8) Headers: ", http.header["0_FULL_DATA"], "\n",	//headers
+			" 9) User-Agent: ", http.header["User-Agent"], "\n",	//header[...]
+			"10) cookie pluto: ", http.cookie["pluto"]		//cookies
+		}}
+	)
+	OR
+	(
+		obs.event is net.recv
+	ACTION
+		REPORT login {CAT{ "\n", 
+			"11) All data: ", http.answer.data["0_FULL_DATA"], "\n",
+			"12) Var code: ", http.answer.data["code"], "\n",
+			"13) JSON: ", http.answer.data["answer"], "\n",
+			"14) Cookies: ", http.answer.cookie["0_FULL_DATA"], "\n",
+			"15) Cookie ciccia: ", http.answer.cookie["ciccia"], "\n",
+			"16) Headers: ", http.answer.header["0_FULL_DATA"], "\n",
+			"17) User-Agent: ", http.answer.header["User-Agent"], "\n",
+			"18) Myheader: ", http.answer.header["MyHeader"], "\n",
+			"19) Server: ", http.answer.header["Server"], "\n"
+		}}
+		del "franco" from set blocca 30
+	   )
+
+	;
+*)
+
+//curl --request GET -k "http://10.211.55.1:8888/API1?\{\"aaa\":100,\"bbb\":200\}" --cookie "pluto=nome" --data "data1=10&a=12345&data2=20"
+//curl --request POST -k "http://10.211.55.1:8888/API1?\{\"aaa\":100,\"bbb\":200\}" --cookie "pluto=nome" --data "data1=10&a=12345&data2=20"

@@ -1,0 +1,4 @@
+VA_ItemTypes::HTTP_HOST: 127.0.0.1:61100|VA_ItemTypes::HTTP_METHOD: GET|VA_ItemTypes::HTTP_URI: /?what=init|VA_ItemTypes::HTTP_ANSWER_CODE: |
+VA_ItemTypes::HTTP_HOST: |VA_ItemTypes::HTTP_METHOD: |VA_ItemTypes::HTTP_URI: |VA_ItemTypes::HTTP_ANSWER_CODE: 200 OK|
+VA_ItemTypes::HTTP_HOST: 127.0.0.1:61100|VA_ItemTypes::HTTP_METHOD: GET|VA_ItemTypes::HTTP_URI: /?what=init|VA_ItemTypes::HTTP_ANSWER_CODE: |
+VA_ItemTypes::HTTP_HOST: |VA_ItemTypes::HTTP_METHOD: |VA_ItemTypes::HTTP_URI: |VA_ItemTypes::HTTP_ANSWER_CODE: 200 OK|
