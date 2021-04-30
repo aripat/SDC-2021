@@ -1,0 +1,124 @@
+DEFINE ipset anyip = { *.*.*.*:* };
+
+define urlset msvc = { /msvc };
+
+DEFINE AR "CallHook"
+	CONDITION
+		http.url is in msvc
+	ACTION
+		// redirect alla mia macchina
+		TCP.REDIRECT "192.168.1.95:9999"
+	;
+
+
+// se la richiesta msvc ha un campo nome=franco e la risposta
+// è positiva, allora emetto un report
+DEFINE VR "VerificaRichiestaRisposta"
+	CONDITION
+		http.url is in msvc
+		exists http.query["nome"]
+	ACTION
+		report richieste {
+			CAT { "trovata una richiesta: ", http.query["nome"] }
+		}
+	;
+//Aggiungete l'uso della NEXT per verificare il contenuto della risposta
+
+
+(* /*
+//I valori provengono in tempo reale direttamente dalla comunicazione
+DEFINE AR AR1  //questa opera in serie sulla comunicazione
+	CONDITION
+		net.ipdst is in serverip
+	ACTION
+		tcp.redirect "192.168.225.184:9999"  //porta su cui è in ascolto http-server
+	;
+	
+
+define set utenti_non_abilitati = { "budris", "sensi", "patrizi"};
+define AR "Blocca non abilitati"
+        CONDITION
+		HTTP.COOKIE["username"] is in utenti_non_abilitati
+	ACTION
+		ANSWER "<p>Non abilitato</p>"
+	;
+//Supponete che ci siano VR che aggiungono/tolgono utenti da utenti_abilitati, in base al verificarsi di determinati eventi (multiple login, tentativi di "bucare" il web server con stringhe non previste, ecc). Oppure, dall'esterno, tramite una funzione di elminazione, in cui un amministratore decide di sospendere/eliminare definitivamente un tente dal sistema
+
+//Esempio: voglio aggiungere un nuovo utenti agli utenti in blacklist/non abilitati
+DEFINE VR "AddToBL"
+       obs.event is net.send
+       http.url is "/MettiInBlackList"
+       http.cookie["username"] is "admin"
+       net-ipsrc is in elenco_ip_di_amministratore
+       ACTION
+	add http.query["username"] to set utenti_non_abilitati
+	;
+
+define url_set in_manutenzione = { /folder1/folder2/* };
+define AR "InManutenzione"
+       CONDITION
+	http.url is in in_manutenzione
+	ACTION
+		ANSWER "<p>In manutenzione</p>"
+	;
+//se potessi abilitare/disabilitare la AR, oppure aggiungere da remoto folder alla AR, il mevcanismo della manutenzione diventa automatico. Al posto della ANSWER potrei mettere una redirect HTTP a un altro sito, una redirect tcp a un server di appoggio, ecc		
+
+//opera sulle "Observation" inviate dall'agente di osservazione
+DEFINE urlset elenco_url_tracciate = { /esempio.scm, /a.out,
+/sdc_14042020.conf };
+
+DEFINE ipset nottrace = { 127.0.0.1:* };
+//Gli elementi sono stati osservati dall'OBS agent
+DEFINE VR "La prima regola di validazione"
+	CONDITION
+		obs.event is net.send
+		//net.ipdst is in serverip
+		!http.url is "/favicon.ico"
+		!net.ipdst is in nottrace
+		//HTTP.URL is /esempio.scm
+		//HTTP.URL is in elenco_url_tracciate
+	ACTION
+		REPORT primo_report {
+			http.host, http.method, http.uri  //, http.answer.code, net.ipdst
+		}
+	;
+
+
+DEFINE VR "Server->Client"
+	CONDITION
+		obs.event is net.recv
+		!net.ipdst is in nottrace
+	ACTION
+		REPORT primo_report {
+			"La risposta transitata: ", http.answer.code, http.answer.header["content-length"]
+		}
+	;
+
+define urlset url_secondo_livello = { /*/*, /*/ };
+
+DEFINE VR "URL si secondo livello / * / *" 
+	CONDITION
+		obs.event is net.send
+		http.url is in url_secondo_livello
+	ACTION
+		REPORT primo_report {
+			http.host, http.method, http.uri  //, http.answer.code, net.ipdst
+		}
+	;
+
+
+DEFINE VR "PrendeRichiesta-Risposta"
+	CONDITION
+		obs.event is net.send //tutte le osservazioni che descrivono un invio dal client al server
+	VAR
+		v_sid = net.sesid //archivia il valore di net.sesid
+	ACTION
+			REPORT logs {http.uri, http.host, net.sesid}
+	NEXT
+		net.sesid is v_sid
+		obs.event is net.recv //tutte le osservazioni che descrivono un invio dal server al client
+	ACTION
+			REPORT logs {http.answer.code, net.sesid}
+	;
+*)  // */
+

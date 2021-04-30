@@ -1,0 +1,38 @@
+DEFINE ipset anyip = { *.*.*.*:* };
+DEFINE set positive_answers = {"risultato=OK"};
+define urlset msvc = { /msvc };
+
+DEFINE AR "CallHook"
+	CONDITION
+		http.url is in msvc
+	ACTION
+		// redirect da dentro al container al servizio nella mia macchina
+		tcp.redirect "10.0.2.15:9999"
+	;
+
+// su microservizi: metto il servizio in ascolto su un indirizzo esterno al container, l'indirizzo della mia macchina
+// docker run -it -p 10.0.2.15:9999:9999 -v "$PWD":/vapps dozenapps/va  /va sdc.conf
+
+// su sdc-3004: mando la VA in ascolto nel mio container, sulla porta 8888 della macchina, 80 del container (come specificato in .conf)
+// docker run -it -p 127.0.0.1:8888:80 -v "$PWD":/vapps dozenapps/va  /va esercizio-3004.conf
+
+// se la richiesta msvc ha un campo nome=franco e la risposta
+// è positiva, allora emetto un report
+DEFINE VR "VerificaRichiestaRisposta"
+	CONDITION
+		obs.event is net.send
+		http.url is in msvc
+		exists http.query["nome"]
+	ACTION
+		report richieste {
+			CAT { "Trovata una richiesta: nome = ", http.query["nome"] , "..."}
+		}
+	NEXT
+		obs.event is net.recv
+		http.answer.data is in positive_answers
+		http.answer.code is "200 OK"
+	ACTION
+		report richieste {
+			CAT { "... Risposta positiva: ", http.answer.data }
+		}
+	;

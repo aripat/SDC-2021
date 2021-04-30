@@ -1,0 +1,36 @@
+CAT{trovata una richiesta: pippo}|
+
+CAT{trovata una richiesta: pippo}|
+
+CAT{trovata una richiesta: pippo}|
+
+CAT{Trovata una richiesta: pippo...}|
+
+CAT{trovata una richiesta: }|
+
+CAT{Trovata una richiesta: pippo...}|
+
+CAT{... Risposta positiva.}|
+
+VA_ItemTypes::VARIABLE[Trovata una richiesta: nome =]=|VA_ItemTypes::HTTP_QUERY[nome]=pippo|VA_ItemTypes::VARIABLE[...]=|
+CAT{Trovata una richiesta: nome =pippo...}|
+
+CAT{Trovata una richiesta: nome = pippo...}|
+
+CAT{... Risposta: }|
+
+CAT{Trovata una richiesta: nome = pippo...}|
+
+CAT{... Risposta: risultato=OK}|
+
+CAT{Trovata una richiesta: nome = pippo...}|
+
+CAT{... Risposta positiva: risultato=OK}|
+
+CAT{Trovata una richiesta: nome = pippo...}|
+
+VA_ItemTypes::HTTP_ANSWER_CODE: 200 OK|
+CAT{Trovata una richiesta: nome = pippo...}|
+
+CAT{... Risposta positiva: risultato=OK}|
+

@@ -1,0 +1,55 @@
+// url dalla quale scatta il microservizio
+define urlset url_servizio = { /msvc };
+
+define set nome_utenti = { "uno", "due" };
+
+//// Il servizio parte con (nella dir microservizi):
+// docker run -it -p 127.0.0.1:9999:9999 -v "$PWD":/vapps dozenapps/va  /va /vapps/sdc.conf
+//// check: 
+// sudo netstat -anp --tcp | grep LISTEN
+//// Per dialogare con il servizio (in qualsiasi dir):
+// GET http://127.0.0.1:9999/prova?par=val
+// POST "http://127.0.0.1:9999/msvc" ...... poi chiede i parametri (Ctrl+D per terminare)
+//// Per testare e stressare il servizio con "-n" richieste con grado di parallelismo "-c":
+// ab -n 10000 -c 10 http://127.0.0.1:9999/prova
+
+// Posso passare riferimenti a set all'ambiente lisp (sdc.scm)
+DEFINE AR "AR-MICROSVC"
+	CONDITION
+		http.url is in url_servizio
+	ACTION
+	// Operazione MANAGE, gli si passa una qualsiasi stringa, che deve essere coerente con il file sdc.scm
+	// all'interno del quale abbiamo definito la funzione Manage::MSVC per la gestione
+	// nome_utenti per inserire o elminare un elemento del set
+		MANAGE "MICROSVC", nome_utenti 
+	;
+
+
+(* /* //altri microservizi di esempio, non gestiti
+define urlset url_servizio_1 = { /svc/sv1 };
+
+DEFINE AR "AR-MICROSVC-1"
+	CONDITION
+		http.url is in url_servizio_1
+	ACTION
+		MANAGE "SV1"
+	;
+
+define urlset url_servizio_2 = { /svc/sv2 };
+
+DEFINE AR "AR-MICROSVC-2"
+	CONDITION
+		http.url is in url_servizio_2
+	ACTION
+		MANAGE "SV2"
+	;
+*/ *)
+
+DEFINE ipset anyip = { *.*.*.*:* };
+
+DEFINE AR "BLOCCA"
+	CONDITION
+		NET.IPDST IS IN anyip
+	ACTION
+		ANSWER "<p>Accesso non consentito</p>"
+	;
